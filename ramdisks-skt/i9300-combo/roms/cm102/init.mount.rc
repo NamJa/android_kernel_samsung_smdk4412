@@ -1,0 +1,7 @@
+on fs
+    mount_all /fstab.SHV-E210S
+
+    setprop ro.crypto.fuse_sdcard true
+
+    chown radio system /efs
+    chmod 0771 /efs
