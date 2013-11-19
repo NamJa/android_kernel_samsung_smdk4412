@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#./build_kernel_skt.sh clean
+./build_combo_skt.sh i9300 clean
 
-./build_kernel_kt.sh clean
-
-./build_kernel_lgt.sh clean
+./build_combo_kt.sh i9300 clean
