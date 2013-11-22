@@ -12,8 +12,11 @@ if [ -e ramdisk.cpio.lzma ]; then
 	rm ramdisk.cpio.lzma
 fi
 
+# Set Default Path
+KERNEL_PATH=$PWD
+
 TOOLCHAIN_PATH="/opt/android-toolchain-eabi-4.8-1310/bin/"
-TOOLCHAIN="$TOOLCHAIN_PATH/arm-linux-androideabi-"
+TOOLCHAIN="$TOOLCHAIN_PATH/arm-eabi-"
 
 echo "Cleaning latest build"
 make ARCH=arm CROSS_COMPILE=$TOOLCHAIN -j`grep 'processor' /proc/cpuinfo | wc -l` mrproper
