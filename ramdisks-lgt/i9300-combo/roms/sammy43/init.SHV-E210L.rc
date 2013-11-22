@@ -1,6 +1,5 @@
 import init.SHV-E210L.usb.rc
 import init.bt.rc
-import init.container.rc
 
 on early-init
     mkdir /efs 0771 radio system
@@ -8,7 +7,6 @@ on early-init
 on init
     # See storage config details at http://source.android.com/tech/storage/
     mkdir /mnt/shell/emulated 0700 shell shell
-    mkdir /mnt/shell/container 0700 system system
     mkdir /storage/emulated 0555 root root
 
     export EXTERNAL_STORAGE /storage/emulated/legacy
@@ -20,7 +18,6 @@ on init
     symlink /storage/emulated/legacy /mnt/sdcard
     symlink /storage/emulated/legacy /storage/sdcard0
     symlink /mnt/shell/emulated/0 /storage/emulated/legacy
-    symlink /mnt/shell/container /storage/container
 
     export SECONDARY_STORAGE /storage/extSdCard
     mkdir /storage/extSdCard 0555 root root
@@ -58,9 +55,6 @@ on post-fs-data
     chown media_rw media_rw /data/media
     setprop vold.post_fs_data_done 1
 
-    # we will remap this as /storage/container with the sdcard fuse tool
-    mkdir /data/container 0770 system system
-    chown system system /data/container
 
     # for semco wifi module
 #    mkdir /data/misc/dhcp 0777 dhcp dhcp
@@ -94,16 +88,11 @@ on post-fs-data
     # for TRP/TIS
     write /data/.psm.info 1
     chown system root /data/.psm.info
-    chmod 0660 /data/.psm.info
+    chmod 0664 /data/.psm.info
 
 # tdmb
     chown system system /dev/tdmb
     chmod 0660 /dev/tdmb
-
-# MOBILE OFFICE Permanent memory access
-    mkdir /efs/security 0771 root root
-    chown radio system /efs/security
-    chmod 0771 /efs/security
 
 # LGT contents directory
     mkdir /data/data/com.ubivelox.wipiplayer/W 0770 system lgt_gid
@@ -232,9 +221,7 @@ on boot
     chmod 0660 /dev/tspdrv
     chown system system /dev/tspdrv
 
-# reset_reason
-    chown system system /proc/reset_reason
-    chmod 0600 /proc/reset_reason
+    write /proc/sys/vm/swappiness 130
 
 on fs
     mount_all /fstab.SHV-E210L
@@ -273,8 +260,12 @@ on fs
     chmod 0664 /sys/class/sec/gps/GPS_PWR_EN/value
     chown root system /sys/class/sec/gps/GPS_nRST/value
     chmod 0664 /sys/class/sec/gps/GPS_nRST/value
-    mkdir /data/gps 771 system system
-    chown system system /data/gps
+
+# make sure data_system dir and perms are properly set.
+    mkdir /data/system 0771 system system
+    chown system system /data/system
+    mkdir /data/system/gps 0771 system system
+    chown system system /data/system/gps
 
 # Permissions for backlight
     chown system system /sys/class/backlight/panel/brightness
@@ -304,9 +295,6 @@ on fs
 # IPC sysfs
     chown radio radio /sys/devices/virtual/misc/multipdp/waketime
     symlink /dev/block/mmcblk0p7 /dev/mbin0
-
-# Permissions for usb_lock
-    chown system radio /sys/class/sec/switch/.usb_lock/enable
 
 on post-fs
     chown radio system /efs
@@ -387,12 +375,6 @@ service sdcard /system/bin/sdcard /data/media /mnt/shell/emulated 1023 1023
     class late_start
     oneshot
 
-# virtual sdcard daemon running as system (1000)
-service container /system/bin/sdcard /data/container /mnt/shell/container 1000 1000
-    class late_start
-    oneshot
-
-    start container
 
 #	-iwlan0 -Dnl80211 -c/data/misc/wifi/wpa_supplicant.conf -N \
 service p2p_supplicant /system/bin/p2p_supplicant \
@@ -481,11 +463,7 @@ service wlandutservice /system/bin/wlandutservice
 
 service macloader /system/bin/macloader
 	class main
-	disabled
 	oneshot
-
-on property:sys.mobicoredaemon.enable=true
-	start macloader
 
 on property:init.svc.macloader=stopped
     chown system root /data/.cid.info
@@ -558,15 +536,3 @@ service secure_storage /system/bin/secure_storage_daemon
 
 on property:ro.securestorage.ready=true
     start secure_storage
-
-# KNOX VPN
-service ipruleset /system/bin/ipruleset
-    class main
-    group vpn net_admin inet net_raw
-	disabled
-    oneshot
-	
-# v3
-    restorecon /dev/icd
-    restorecon /dev/icdr
-

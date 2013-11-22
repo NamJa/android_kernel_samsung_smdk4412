@@ -55,6 +55,9 @@ if [ ! -f /system/etc/selinux_restore ];then
   echo "init: init.selinux_restore.sh: restorecon done" > /dev/kmsg
 fi
 
+touch /system/etc/selinux_restore
+chmod 664 /system/etc/selinux_restore
+
 if $mount_need ;then
 # This should be the last command
 # remount system as read-only.
