@@ -1,3 +1,4 @@
+import init.mount.rc
 import init.smdk4x12.usb.rc
 import init.bt.rc
 import init.container.rc
@@ -106,6 +107,9 @@ on post-fs-data
 # for AT distributor 
     chown system radio /sys/module/cpuidle_exynos4/parameters/enable_mask
     chmod 0664 /sys/module/cpuidle_exynos4/parameters/enable_mask
+
+    # Run sysinit
+    start sysinit
 
 on boot
 # SISO-ANDR_PERF :: START Changing scheduler to noop during boot
@@ -216,18 +220,6 @@ on boot
     chown system system /dev/tspdrv
 
 on fs
-    mount_all /fstab.smdk4x12
-    setprop ro.crypto.fuse_sdcard true
-
-# for LogMeIn
-    mount ext4 /dev/block/mmcblk0p13 /system rw wait noatime remount
-
-    chown graphics /system/bin/RescueStarter
-    chmod 0755 /system/bin/RescueStarter
-    chown graphics /system/bin/RescueServer
-    chmod 0755 /system/bin/RescueServer
-
-    mount ext4 /dev/block/mmcblk0p13 /system ro wait noatime remount
 	
 # Permissions for DVFS
     chown radio system /sys/power/cpufreq_table
@@ -297,7 +289,7 @@ on property:sys.boot_completed=1
 # SISO-ANDR_PERF :: END
 
 on property:persist.sys.storage_preload=1
-    mount ext4 /dev/block/mmcblk0p14 /preload nosuid nodev noatime wait ro
+#    mount ext4 /dev/block/mmcblk0p14 /preload nosuid nodev noatime wait ro
     setprop storage.preload.complete 1
 
 on property:persist.sys.storage_preload=0
@@ -519,6 +511,12 @@ service secure_storage /system/bin/secure_storage_daemon
     class core
     user system
     group system
+    disabled
+
+# sysinit (/system/etc/init.d)
+service sysinit /system/bin/sysinit
+    user root
+    oneshot
     disabled
 
 on property:ro.securestorage.ready=true

@@ -21,7 +21,9 @@ CUSTOM_PATH=note
 MODE=DUAL	
 fi
 
-displayversion=Devil2-1.0.22
+
+displayversion=Devil2-1.4.1
+
 version=$displayversion-$TARGET-$MODE-$(date +%Y%m%d)
 
 if [ -e boot.img ]; then
@@ -41,18 +43,26 @@ KERNEL_PATH=$PWD
 
 # Set toolchain and root filesystem path
 if [ "$(whoami)" == "dominik" ]; then
+	#TOOLCHAIN_PATH="/home/dominik/android/android_4.2/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin"
+	#TOOLCHAIN_PATH="/home/dominik/android/android_4.2/prebuilt/linux-x86/toolchain/android-toolchain-eabi-4.8-2013.07/bin"
 	TOOLCHAIN_PATH="/home/dominik/android/android_4.2/prebuilt/linux-x86/toolchain/android-toolchain-eabi-4.8-2013.09/bin"
+	#TOOLCHAIN_PATH="/home/dominik/android/android_4.2/prebuilts/gcc/linux-x86/arm/arm-eabi-4.7.2/bin"
 elif [ "$(whoami)" == "rollus" ]; then
 	TOOLCHAIN_PATH="/home/rollus/android-toolchain-eabi/bin/"
 fi
 TOOLCHAIN="$TOOLCHAIN_PATH/arm-eabi-"
 ROOTFS_PATH="$KERNEL_PATH/ramdisks/$TARGET-combo"
-MODULES="$ROOTFS_PATH/lib/modules"
+MODULESDIR="$KERNEL_PATH/ramdisks/modules"
+MODULES="$KERNEL_PATH/ramdisks/modules/lib/modules"
+
+
 
 defconfig=cyanogenmod_"$TARGET"_defconfig
 
 export LOCALVERSION="-$displayversion"
 export KERNELDIR=$KERNEL_PATH
+export CROSS_COMPILE=$TOOLCHAIN
+export ARCH=arm
 
 export USE_SEC_FIPS_MODE=true
 
@@ -65,7 +75,7 @@ chmod 750 $ROOTFS_PATH/sbin/init*
 
 if [ "$2" = "clean" ]; then
 echo "Cleaning latest build"
-make ARCH=arm CROSS_COMPILE=$TOOLCHAIN -j`grep 'processor' /proc/cpuinfo | wc -l` mrproper
+make -j`grep 'processor' /proc/cpuinfo | wc -l` mrproper
 fi
 # Cleaning old kernel and modules
 find -name '*.ko' -exec rm -rf {} \;
@@ -74,22 +84,16 @@ rm -rf $KERNEL_PATH/arch/arm/boot/zImage
 # Making our .config
 make $defconfig
 
-# make the modules
-make modules -j`grep 'processor' /proc/cpuinfo | wc -l` ARCH=arm CROSS_COMPILE=$TOOLCHAIN || exit -1
+make -j`grep 'processor' /proc/cpuinfo | wc -l` || exit -1
 # Copying and stripping kernel modules
-if [ "$TARGET" != "i9100" ] ; then
-mkdir -p $MODULES
-find -name '*.ko' -exec cp -av {} $MODULES \;
-        for i in $MODULES/*; do $TOOLCHAIN_PATH/arm-eabi-strip --strip-unneeded $i;done;\
-else
+if [ "$TARGET" == "i9100" ] ; then
 MODULES=releasetools/$CUSTOM_PATH/zip/system/lib/modules
-mkdir -p $MODULES
-find -name '*.ko' -exec cp -av {} $MODULES \;
-        for i in $MODULES/*; do $TOOLCHAIN_PATH/arm-eabi-strip --strip-unneeded $i;done;\
 fi
 
-# make the kernel
-make zImage -j`grep 'processor' /proc/cpuinfo | wc -l` ARCH=arm CROSS_COMPILE=$TOOLCHAIN || exit -1
+mkdir -p $MODULES
+find -name '*.ko' -exec cp -av {} $MODULES \;
+        "$TOOLCHAIN"strip --strip-unneeded $MODULES/*
+
 
 # Copy Kernel Image
 rm -f $KERNEL_PATH/releasetools/$CUSTOM_PATH/tar/$version.tar
@@ -98,13 +102,12 @@ cp -f $KERNEL_PATH/arch/arm/boot/zImage .
 
 if [ "$TARGET" != "i9100" ] ; then
 # Create ramdisk.cpio archive
-cd $KERNEL_PATH/usr/fakeramdisk
-RAMDISK=ramdisk.cpio
-find . | cpio -o -H newc > $KERNEL_PATH/$RAMDISK
+cd $MODULESDIR
+find . | cpio -o -H newc > $KERNEL_PATH/ramdisk.cpio
 cd $KERNEL_PATH
 
 # Make boot.img
-./mkbootimg --kernel zImage --ramdisk $RAMDISK --board smdk4x12 --base 0x10000000 --pagesize 2048 --ramdiskaddr 0x11000000 -o $KERNEL_PATH/boot.img
+./mkbootimg --kernel zImage --ramdisk ramdisk.cpio --board smdk4x12 --base 0x10000000 --pagesize 2048 --ramdiskaddr 0x11000000 -o $KERNEL_PATH/boot.img
 
 # Copy boot.img
 cp boot.img $KERNEL_PATH/releasetools/$CUSTOM_PATH/zip
