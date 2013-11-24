@@ -18,7 +18,7 @@ CUSTOM_PATH=note
 MODE=DUAL	
 fi
 
-displayversion=LGT_Devil2-1.0.22
+displayversion=LGT_Devil2-1.4.1
 version=$displayversion-$TARGET-$MODE-$(date +%Y%m%d)
 
 if [ -e boot.img ]; then
@@ -53,6 +53,8 @@ defconfig=cyanogenmod_"$TARGET"_defconfig
 
 export LOCALVERSION="-$displayversion"
 export KERNELDIR=$KERNEL_PATH
+export CROSS_COMPILE=$TOOLCHAIN
+export ARCH=arm
 
 export USE_SEC_FIPS_MODE=true
 
@@ -65,7 +67,7 @@ chmod 750 $ROOTFS_PATH/sbin/init*
 
 if [ "$2" = "clean" ]; then
 echo "Cleaning latest build"
-make ARCH=arm CROSS_COMPILE=$TOOLCHAIN -j`grep 'processor' /proc/cpuinfo | wc -l` mrproper
+make -j`grep 'processor' /proc/cpuinfo | wc -l` mrproper
 fi
 # Cleaning old kernel and modules
 find -name '*.ko' -exec rm -rf {} \;
@@ -178,11 +180,11 @@ CONFIG_TDMB_MTV318=y
 # CONFIG_TDMB_ANT_DET is not set
 " >> .config
 
-make -j`grep 'processor' /proc/cpuinfo | wc -l` ARCH=arm CROSS_COMPILE=$TOOLCHAIN || exit -1
+make -j`grep 'processor' /proc/cpuinfo | wc -l` || exit -1
 # Copying and stripping kernel modules
 mkdir -p $ROOTFS_PATH/lib/modules
 find -name '*.ko' -exec cp -av {} $ROOTFS_PATH/lib/modules/ \;
-        for i in $ROOTFS_PATH/lib/modules/*; do $TOOLCHAIN_PATH/arm-eabi-strip --strip-unneeded $i;done;\
+        "$TOOLCHAIN"strip --strip-unneeded $ROOTFS_PATH/lib/modules/*
 
 # Copy Kernel Image
 rm -f $KERNEL_PATH/releasetools-lgt/$CUSTOM_PATH/tar/$version.tar
