@@ -496,7 +496,6 @@ service netd /system/bin/netd
 service debuggerd /system/bin/debuggerd
     class main
 
-# RILD
 service ril-daemon /system/bin/rild
     class main
     socket rild stream 660 root radio
