@@ -436,6 +436,26 @@ on property:ro.uart_debug=0
 service sdcard /system/bin/sdcard /data/media /mnt/shell/emulated 1023 1023
     class late_start
 
+service cbd-lte /sbin/cbd -d -t cmc221 -b d -m d
+    class main
+    user root
+    group radio cache inet misc audio sdcard_rw log
+
+service cbd-cdma /sbin/cbd -d -t cbp72 -b u -m d
+    class main
+    user root
+    group radio cache inet misc audio sdcard_rw log
+
+# RILD
+service ril-daemon /system/bin/rild
+    class main
+    socket rild stream 660 root radio
+    socket rild-debug stream 660 radio system
+    user root
+    group radio cache inet misc audio sdcard_rw log
+    onrestart restart cbd-lte
+    onrestart restart cbd-cdma
+
 service p2p_supplicant /system/bin/wpa_supplicant \
     -iwlan0 -Dnl80211 -c/data/misc/wifi/wpa_supplicant.conf -N \
     -ip2p0 -Dnl80211 -c/data/misc/wifi/p2p_supplicant.conf -e/data/misc/wifi/entropy.bin \

@@ -27,8 +27,8 @@ on init
 
 on early-fs
 	insmod /lib/modules/vibrator.ko
- 
-	mount ext4 /dev/block/mmcblk0p10 /system ro wait noatime
+
+    mount ext4 /dev/block/mmcblk0p10 /system ro wait noatime
 
 	mkdir /data/log 0777
 

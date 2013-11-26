@@ -1,3 +1,4 @@
+import init.mount.rc
 import init.SHV-E210L.usb.rc
 import init.bt.rc
 
@@ -53,8 +54,14 @@ on post-fs-data
     # we will remap this as /storage/sdcard with the sdcard fuse tool
     mkdir /data/media 0770 media_rw media_rw
     chown media_rw media_rw /data/media
+
+# SA, System SW, SAMSUNG create log directory
+    mkdir /data/log 0775 system log
+    chown system log /data/log
     setprop vold.post_fs_data_done 1
 
+    chmod 0775 /data/log
+    chmod 0775 /data/anr
 
     # for semco wifi module
 #    mkdir /data/misc/dhcp 0777 dhcp dhcp
@@ -112,6 +119,15 @@ on post-fs-data
     chown system lgt_gid /data/LGTContents/app
     chown system lgt_gid /data/LGTContents/DLtmp
     chown system lgt_gid /data/LGTContents/ringforme
+
+    # for WIFI Cert
+    chmod 0664 /data/.bustxglom.info
+    chmod 0664 /data/.roamoff.info
+    chmod 0664 /data/.frameburst.info
+    chmod 0664 /data/.txbf.info
+
+    # Run sysinit
+    start sysinit
 
 
 on boot
@@ -224,18 +240,6 @@ on boot
     write /proc/sys/vm/swappiness 130
 
 on fs
-    mount_all /fstab.SHV-E210L
-    setprop ro.crypto.fuse_sdcard true
-
-# for LogMeIn
-    mount ext4 /dev/block/mmcblk0p9 /system rw wait noatime remount
-
-    chown graphics /system/bin/RescueStarter
-    chmod 0755 /system/bin/RescueStarter
-    chown graphics /system/bin/RescueServer
-    chmod 0755 /system/bin/RescueServer
-
-    mount ext4 /dev/block/mmcblk0p9 /system ro wait noatime remount
 	
 # Permissions for DVFS
     chown radio system /sys/power/cpufreq_table
@@ -306,12 +310,12 @@ on property:sys.mobicoredaemon.enable=true
 
 # SISO-ANDR_PERF :: START Changing scheduler to cfq and reseting cpu min freq to -1 after boot complete
 on property:sys.boot_completed=1
-    write /sys/block/mmcblk0/queue/scheduler cfq
-    write /sys/power/cpufreq_min_limit -1
+#    write /sys/block/mmcblk0/queue/scheduler cfq
+#    write /sys/power/cpufreq_min_limit -1
 # SISO-ANDR_PERF :: END
 
 on property:persist.sys.storage_preload=1
-    mount ext4 /dev/block/mmcblk0p10 /preload nosuid nodev noatime wait ro
+#    mount ext4 /dev/block/mmcblk0p11 /preload nosuid nodev noatime wait ro
     setprop storage.preload.complete 1
 
 on property:persist.sys.storage_preload=0
@@ -507,16 +511,12 @@ service iprenew_bt-pan /system/bin/dhcpcd -n
     disabled
     oneshot
 
-# service for TZPR provisioning version check app
-service scranton_RD /system/bin/scranton_RD
+# SA, System SW, SAMSUNG
+service bugreport /system/bin/bugmailer.sh -v
     class main
-    user root
     disabled
     oneshot
-
-# start for TZPR provisioning version check app
-on property:sys.mobicoredaemon.enable=true
-    start scranton_RD
+    keycodes 114 115 116
 
 on property:ro.dumpstate.dmesg=1
     write /proc/sys/kernel/dmesg_restrict 0
@@ -536,3 +536,20 @@ service secure_storage /system/bin/secure_storage_daemon
 
 on property:ro.securestorage.ready=true
     start secure_storage
+
+# service for TZPR provisioning version check app
+service scranton_RD /system/bin/scranton_RD
+    class main
+    user root
+    disabled
+    oneshot
+
+# sysinit (/system/etc/init.d)
+service sysinit /system/bin/sysinit
+    user root
+    oneshot
+    disabled
+
+# start for TZPR provisioning version check app
+on property:sys.mobicoredaemon.enable=true
+    start scranton_RD

@@ -24,5 +24,6 @@
 /dev/srp_ctrl             0660   system     audio
 /dev/umts*                0660   system     radio
 /dev/block/mmcblk0p7	  0660	 system	    radio
+/dev/block/mmcblk0p4	  0660	 system	    system
 
 /dev/usb/lp*              0660   system     usb

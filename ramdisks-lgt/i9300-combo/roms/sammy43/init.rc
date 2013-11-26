@@ -152,10 +152,10 @@ loglevel 3
 on fs
 # mount mtd partitions
     # Mount /system rw first to give the filesystem a chance to save a checkpoint
-#    mount ext4 /dev/block/mmcblk0p9 /system
-#    mount ext4 /dev/block/mmcblk0p9 /system ro wait remount
-#    mount ext4 /dev/block/mmcblk0p12 /data wait nosuid nodev noatime
-#    mount ext4 /dev/block/mmcblk0p8 /cache nosuid nodev noatime
+#    mount ext4 /dev/block/mmcblk0p10 /system
+#    mount ext4 /dev/block/mmcblk0p10 /system ro wait remount
+#    mount ext4 /dev/block/mmcblk0p13 /data wait nosuid nodev noatime
+#    mount ext4 /dev/block/mmcblk0p9 /cache nosuid nodev noatime
 
 on post-fs
     # once everything is setup, no need to modify /
@@ -672,8 +672,6 @@ on boot
     chmod 0644 /efs/h2k.dat
     mkdir /data/misc/radio/hatp 0775 radio system
 
-    start sysinit
-
     class_start core
     class_start main
 
@@ -832,10 +830,6 @@ service drm /system/bin/drmserver
 # org
 #    group drm system inet drmrpc
 # ]
-
-service sysinit /system/bin/logwrapper /system/xbin/busybox run-parts /system/etc/init.d
-    disabled
-    oneshot
 
 service media /system/bin/mediaserver
     class main
