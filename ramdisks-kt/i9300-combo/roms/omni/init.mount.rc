@@ -1,4 +1,5 @@
 on fs
+    mkdir /preload
     mount_all /fstab.SHV-E210K
 
     setprop ro.crypto.fuse_sdcard true
