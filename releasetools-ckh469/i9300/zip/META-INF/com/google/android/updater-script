@@ -12,8 +12,13 @@ delete_recursive("/data/dalvik-cache/");
 delete_recursive("/cache/dalvik-cache/");
 unmount("/cache");
 unmount("/data");
-
 show_progress(0.100000, 40);
+
+ui_print("* Delete init.d script *");
+mount("ext4", "EMMC", "/dev/block/mmcblk0p9", "/system");
+delete_recursive("/system/etc/init.d/11setprop");
+unmount("/system");
+show_progress(0.100000, 60);
 
 ui_print("* Flashing kernel *");
 
