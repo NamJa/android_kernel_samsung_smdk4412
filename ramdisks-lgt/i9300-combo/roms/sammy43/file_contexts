@@ -215,3 +215,13 @@
 # asec containers
 /mnt/asec(/.*)?         u:object_r:asec_apk_file:s0
 /data/app-asec(/.*)?    u:object_r:asec_image_file:s0
+
+# file_contests
+/dev/cdma_boot0              u:object_r:radio_device:s0
+/dev/cdma_ipc0                 u:object_r:radio_device:s0
+/dev/cdma_rfs0                  u:object_r:radio_device:s0
+/dev/cdma_multipdp          u:object_r:radio_device:s0
+/dev/cdma_rmnet[0-6]*      u:object_r:radio_device:s0
+/dev/cdma_ramdump0       u:object_r:radio_device:s0
+/dev/cdma_cplog               u:object_r:radio_device:s0
+

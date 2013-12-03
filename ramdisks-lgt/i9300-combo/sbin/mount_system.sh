@@ -1,6 +1,6 @@
 #!/sbin/busybox sh
 BB="/sbin/busybox"
-$BB mount -t ext4 -o rw /dev/block/mmcblk0p10 /cache
+$BB mount -t ext4 -o rw /dev/block/mmcblk0p11 /cache
 $BB date >/cache/system_mount.txt
 exec >>/cache/system_mount.txt 2>&1
 
@@ -13,7 +13,7 @@ echo ""
 
 $BB ls -l /.secondrom
 echo ""
-$BB mount -t ext4 -o rw /dev/block/mmcblk0p12 /.secondrom
+$BB mount -t ext4 -o rw /dev/block/mmcblk0p13 /.secondrom
 
 #### system
 $BB mkdir -p /system
