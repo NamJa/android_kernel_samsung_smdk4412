@@ -15,7 +15,7 @@ fi
 # Set Default Path
 KERNEL_PATH=$PWD
 
-TOOLCHAIN_PATH="/opt/android-toolchain-eabi-4.8-1310/bin/"
+TOOLCHAIN_PATH="/opt/android-toolchain-eabi-4.8-1311/bin/"
 TOOLCHAIN="$TOOLCHAIN_PATH/arm-eabi-"
 
 echo "Cleaning latest build"

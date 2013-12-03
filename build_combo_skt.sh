@@ -18,7 +18,7 @@ CUSTOM_PATH=note
 MODE=DUAL	
 fi
 
-displayversion=SKT_Devil2-1.7.0
+displayversion=SKT_Devil2-1.8.1
 version=$displayversion-$TARGET-$MODE-$(date +%Y%m%d)
 
 if [ -e boot.img ]; then
@@ -44,7 +44,7 @@ if [ "$(whoami)" == "dominik" ]; then
 elif [ "$(whoami)" == "rollus" ]; then
 	TOOLCHAIN_PATH="/home/rollus/android-toolchain-eabi/bin/"
 fi
-TOOLCHAIN_PATH="/opt/android-toolchain-eabi-4.8-1310/bin"
+TOOLCHAIN_PATH="/opt/android-toolchain-eabi-4.8-1311/bin"
 TOOLCHAIN="$TOOLCHAIN_PATH/arm-eabi-"
 ROOTFS_PATH="$KERNEL_PATH/ramdisks-skt/$TARGET-combo"
 MODULES="$KERNEL_PATH/ramdisks-skt/modules"
