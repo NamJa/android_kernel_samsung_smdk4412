@@ -36,7 +36,7 @@ logcat_log() {
 
 check_mount () {
 for i in $($BB seq 1 5) ; do
-if $BB test -d /sys/dev/block/179:9 ; then
+if $BB test -d /sys/dev/block/179:10 ; then
 break
 else
 echo "Waiting for internal mmc..."
@@ -70,6 +70,6 @@ $BB chown -R media_rw.media_rw /data/media/*
 echo ""
 $BB mount
 
-logcat_log
-dmesg_log
+#logcat_log
+#dmesg_log
 

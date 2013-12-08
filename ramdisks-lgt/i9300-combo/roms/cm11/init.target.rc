@@ -28,6 +28,19 @@ service icd /system/bin/icd
     group system log
     onrestart exec icd_check
 
+# cbd
+service cbd-lte /sbin/cbd -d -t cmc221 -b d -m d
+    class main
+    user root
+    group radio cache inet misc audio sdcard_rw log
+    seclabel u:r:cbd:s0
+
+service cbd-cdma /sbin/cbd -d -t cbp72 -b u -m d
+    class main
+    user root
+    group radio cache inet misc audio sdcard_rw log
+    seclabel u:r:cbd:s0
+
 # GPS
 service gpsd /system/bin/gpsd -c /system/etc/gps.xml
     class main
