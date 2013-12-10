@@ -75,7 +75,7 @@ fi
 if $BB [ ! -f /system/etc/init.d/11setprop ]; then
 $BB echo "#!/system/bin/sh" > /system/etc/init.d/11setprop
 $BB echo "setprop ro.adb.secure 1" >> /system/etc/init.d/11setprop
-$BB echo "setprop ro.secure 0" >> /system/etc/init.d/11setprop
+$BB echo "setprop ro.secure 1" >> /system/etc/init.d/11setprop
 $BB echo "setprop ro.allow.mock.location 0" >> /system/etc/init.d/11setprop
 $BB echo "setprop ro.debuggable 1" >> /system/etc/init.d/11setprop
 $BB echo "setprop persist.sys.usb.config mtp,adb" >> /system/etc/init.d/11setprop
@@ -83,7 +83,7 @@ $BB chmod a+x /system/etc/init.d/11setprop
 fi
 
 if [ "$SAMMY43" != 1 ]; then
-$BB cp -r -f /misc/mali/* /system/
+$BB cp -r -f /misc/libs/* /system/
 $BB chown root:root /system/lib/egl/libEGL_mali.so
 $BB chown root:root /system/lib/egl/libGLESv1_CM_mali.so
 $BB chown root:root /system/lib/egl/libGLESv2_mali.so
