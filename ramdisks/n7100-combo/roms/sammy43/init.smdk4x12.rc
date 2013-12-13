@@ -28,6 +28,7 @@ on init
 
 # map "real" external storages paths also in same way. backwards compatibility.
     symlink /storage/extSdCard /mnt/extSdCard
+    symlink /storage/extSdCard /extSdCard
     symlink /storage/UsbDriveA /mnt/UsbDriveA
     symlink /storage/UsbDriveB /mnt/UsbDriveB
     symlink /storage/UsbDriveC /mnt/UsbDriveC
@@ -520,4 +521,4 @@ service sysinit /system/bin/sysinit
     disabled
 
 on property:ro.securestorage.ready=true
-    start secure_storage
+#    start secure_storage
