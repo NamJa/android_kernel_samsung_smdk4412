@@ -19,7 +19,7 @@ CUSTOM_PATH=note
 MODE=DUAL	
 fi
 
-displayversion=SKT_Devil2-1.9.7
+displayversion=SKT_Devil2-2.0.4
 version=$displayversion-$TARGET-$MODE-$(date +%Y%m%d)
 
 if [ -e boot.img ]; then
