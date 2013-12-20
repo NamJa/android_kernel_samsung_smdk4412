@@ -1,6 +1,7 @@
 import init.mount.rc
 import init.target.rc
 import init.SHV-E210K.usb.rc
+import init.bt.rc
 
 on init
     chmod 0701 /mnt/media_rw
