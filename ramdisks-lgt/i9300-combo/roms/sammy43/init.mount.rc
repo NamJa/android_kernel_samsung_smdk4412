@@ -1,6 +1,7 @@
 on fs
     mount_all /fstab.SHV-E210L
     setprop ro.crypto.fuse_sdcard true
+    exec /sbin/modules.sh
 
 # for LogMeIn
     mount ext4 /dev/block/mmcblk0p10 /system rw wait noatime remount
