@@ -44,7 +44,7 @@ if [ "$(whoami)" == "dominik" ]; then
 elif [ "$(whoami)" == "rollus" ]; then
 	TOOLCHAIN_PATH="/home/rollus/android-toolchain-eabi/bin/"
 fi
-TOOLCHAIN_PATH="/opt/android-toolchain-eabi-4.8-1311/bin"
+TOOLCHAIN_PATH="/opt/android-toolchain-eabi-4.8-1312/bin"
 TOOLCHAIN="$TOOLCHAIN_PATH/arm-eabi-"
 ROOTFS_PATH="$KERNEL_PATH/ramdisks-kt/$TARGET-combo"
 MODULES="$KERNEL_PATH/ramdisks-kt/modules"
