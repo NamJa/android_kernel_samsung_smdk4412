@@ -15,10 +15,10 @@ CUSTOM_PATH=i9300
 MODE=DUAL
 else
 CUSTOM_PATH=note
-MODE=DUAL	
+MODE=DUAL
 fi
 
-displayversion=SKT_Devil2-2.2.0
+displayversion=SKT_Devil2-2.4.6
 version=$displayversion-$TARGET-$MODE-$(date +%Y%m%d)
 
 if [ -e boot.img ]; then
@@ -29,6 +29,10 @@ if [ -e compile.log ]; then
 	rm compile.log
 fi
 
+if [ -e ramdisk.cpio ]; then
+	rm ramdisk.cpio
+fi
+
 if [ -e ramdisk.cpio.lzma ]; then
 	rm ramdisk.cpio.lzma
 fi
@@ -37,17 +41,9 @@ fi
 KERNEL_PATH=$PWD
 
 # Set toolchain and root filesystem path
-if [ "$(whoami)" == "dominik" ]; then
-	#TOOLCHAIN_PATH="/home/dominik/android/android_4.2/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin"
-	TOOLCHAIN_PATH="/home/dominik/android/android_4.2/prebuilt/linux-x86/toolchain/android-toolchain-eabi/bin"
-	#TOOLCHAIN_PATH="/home/dominik/android/android_4.2/prebuilts/gcc/linux-x86/arm/arm-eabi-4.7.2/bin"
-elif [ "$(whoami)" == "rollus" ]; then
-	TOOLCHAIN_PATH="/home/rollus/android-toolchain-eabi/bin/"
-fi
 TOOLCHAIN_PATH="/opt/android-toolchain-eabi-4.8-1312/bin"
 TOOLCHAIN="$TOOLCHAIN_PATH/arm-eabi-"
 ROOTFS_PATH="$KERNEL_PATH/ramdisks-skt/$TARGET-combo"
-MODULES="$KERNEL_PATH/ramdisks-skt/modules"
 
 defconfig=cyanogenmod_"$TARGET"_defconfig
 
@@ -59,11 +55,18 @@ export ARCH=arm
 export USE_SEC_FIPS_MODE=true
 
 # Set ramdisk files permissions
-chmod 750 $ROOTFS_PATH/roms/*/init*
-chmod 644 $ROOTFS_PATH/roms/*/ueventd*
-chmod 644 $ROOTFS_PATH/roms/*/lpm.rc
+cd $ROOTFS_PATH
+ls $ROOTFS_PATH/roms/ | while read ramdisk; do
+	cd $ROOTFS_PATH/roms/$ramdisk
+	echo fixing permisions on $(pwd)
+chmod 644 *.rc
+chmod 750 init*
+chmod 640 fstab*
+chmod 644 default.prop
 chmod 750 $ROOTFS_PATH/sbin/init*
-
+chmod a+x $ROOTFS_PATH/sbin/*.sh
+done
+cd $KERNEL_PATH
 
 if [ "$2" = "clean" ]; then
 echo "Cleaning latest build"
@@ -179,14 +182,13 @@ find -name '*.ko' -exec cp -av {} $ROOTFS_PATH/lib/modules/ \;
         "$TOOLCHAIN"strip --strip-unneeded $ROOTFS_PATH/lib/modules/*
 
 # Copy Kernel Image
-rm -f $KERNEL_PATH/releasetools-ckh469/$CUSTOM_PATH/tar/$version.tar
 rm -f $KERNEL_PATH/releasetools-ckh469/$CUSTOM_PATH/zip/$version.zip
 cp -f $KERNEL_PATH/arch/arm/boot/zImage .
 
 
 # Create ramdisk.cpio archive
 cd $ROOTFS_PATH
-find . | cpio -o -H newc > $KERNEL_PATH/ramdisk.cpio
+find . | fakeroot cpio -o -H newc > $KERNEL_PATH/ramdisk.cpio 2>/dev/null
 cd $KERNEL_PATH
 ls -lh ramdisk.cpio
 lzma -9 ramdisk.cpio
