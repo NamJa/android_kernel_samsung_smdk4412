@@ -1,6 +1,7 @@
 #!/sbin/busybox sh
 
 BB=/sbin/busybox
+TOOLBOX=/system/bin/toolbox
 
 cd /
 
