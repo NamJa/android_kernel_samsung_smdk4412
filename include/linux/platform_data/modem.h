@@ -129,6 +129,7 @@ struct modemlink_pm_data {
 	unsigned gpio_link_active;
 	unsigned gpio_link_hostwake;
 	unsigned gpio_link_slavewake;
+	unsigned gpio_hub_suspend;
 	int (*link_reconnect)(void);
 
 	/* usb hub only */
