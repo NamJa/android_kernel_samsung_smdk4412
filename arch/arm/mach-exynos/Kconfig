@@ -1826,6 +1826,10 @@ endif
 if SEC_MODEM
 comment "Samsung Modem Feature"
 
+config LTE_VIA_SWITCH
+	bool
+	default n
+
 choice
 	prompt "SVNET2 version"
 	default SEC_MODEM_PRIMITIVE
