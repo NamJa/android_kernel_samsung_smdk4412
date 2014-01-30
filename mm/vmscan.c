@@ -657,6 +657,11 @@ void putback_lru_page(struct page *page)
 
 	VM_BUG_ON(PageLRU(page));
 
+#ifdef CONFIG_CLEANCACHE
+  if (active)
+    SetPageWasActive(page);
+#endif
+
 redo:
 	ClearPageUnevictable(page);
 
@@ -1339,6 +1344,9 @@ static unsigned long clear_active_flags(struct list_head *page_list,
 		if (PageActive(page)) {
 			lru += LRU_ACTIVE;
 			ClearPageActive(page);
+#ifdef CONFIG_CLEANCACHE
+		        SetPageWasActive(page);
+#endif
 			nr_active += numpages;
 		}
 		if (count)
@@ -1779,6 +1787,9 @@ static void shrink_active_list(unsigned long nr_pages, struct zone *zone,
 		}
 
 		ClearPageActive(page);	/* we are de-activating */
+#ifdef CONFIG_CLEANCACHE
+	        SetPageWasActive(page);
+#endif
 		list_add(&page->lru, &l_inactive);
 	}
 
@@ -3155,9 +3166,11 @@ unsigned long zone_reclaimable_pages(struct zone *zone)
 	nr = zone_page_state(zone, NR_ACTIVE_FILE) +
 	     zone_page_state(zone, NR_INACTIVE_FILE);
 
+#ifndef CONFIG_ZRAM_FOR_ANDROID
 	if (nr_swap_pages > 0)
 		nr += zone_page_state(zone, NR_ACTIVE_ANON) +
 		      zone_page_state(zone, NR_INACTIVE_ANON);
+#endif
 
 	return nr;
 }
