@@ -134,7 +134,6 @@ on post-fs-data
     # Run sysinit
     start sysinit
 
-
 on boot
 # SISO-ANDR_PERF :: START Changing scheduler to noop during boot
 #    write /sys/block/mmcblk0/queue/scheduler noop
@@ -254,7 +253,7 @@ on boot
     chmod 0660 /dev/tspdrv
     chown system system /dev/tspdrv
 
-    write /proc/sys/vm/swappiness 130
+    write /proc/sys/vm/swappiness 60
 
 on fs
 	
@@ -523,13 +522,6 @@ service tbased /system/bin/tbased
     user root
     oneshot
 
-# SA, System SW, SAMSUNG
-service bugreport /system/bin/bugmailer.sh -v
-    class main
-    disabled
-    oneshot
-    keycodes 114 115 116
-
 on property:ro.dumpstate.dmesg=1
     write /proc/sys/kernel/dmesg_restrict 0
 
@@ -546,7 +538,22 @@ service secure_storage /system/bin/secure_storage_daemon
     group system
     disabled
 
-on property:ro.securestorage.ready=true
+# bugreport 
+service bugreport /system/bin/dumpstate -d -p -B \
+                -o /data/data/com.android.shell/files/bugreports/bugreport
+    class main
+    disabled
+    oneshot
+#   keycodes 114 115 116
+
+# symlink to bugreport storage location
+symlink /data/data/com.android.shell/files/bugreports /data/bugreports
+
+on property:ro.securestorage.knox=true
+    mkdir /dev/.secure_storage
+    chmod 0711 /dev/.secure_storage
+    chown system system /dev/.secure_storage
+    restorecon -R /dev/.secure_storage
     start secure_storage
 
 # service for TZPR provisioning version check app

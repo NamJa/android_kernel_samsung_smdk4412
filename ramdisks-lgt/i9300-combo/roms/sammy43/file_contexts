@@ -224,4 +224,3 @@
 /dev/cdma_rmnet[0-6]*      u:object_r:radio_device:s0
 /dev/cdma_ramdump0       u:object_r:radio_device:s0
 /dev/cdma_cplog               u:object_r:radio_device:s0
-
