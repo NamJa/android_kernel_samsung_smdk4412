@@ -41,7 +41,7 @@ fi
 KERNEL_PATH=$PWD
 
 # Set toolchain and root filesystem path
-TOOLCHAIN_PATH="/opt/android-toolchain-eabi-4.8-1312/bin"
+TOOLCHAIN_PATH="/opt/android-toolchain-eabi-4.8-1401/bin"
 TOOLCHAIN="$TOOLCHAIN_PATH/arm-eabi-"
 ROOTFS_PATH="$KERNEL_PATH/ramdisks-skt/$TARGET-combo"
 

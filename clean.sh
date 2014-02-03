@@ -8,6 +8,10 @@ if [ -e compile.log ]; then
 	rm compile.log
 fi
 
+if [ -e ramdisk.cpio ]; then
+	rm ramdisk.cpio
+fi
+
 if [ -e ramdisk.cpio.lzma ]; then
 	rm ramdisk.cpio.lzma
 fi
@@ -15,7 +19,7 @@ fi
 # Set Default Path
 KERNEL_PATH=$PWD
 
-TOOLCHAIN_PATH="/opt/android-toolchain-eabi-4.8-1312/bin/"
+TOOLCHAIN_PATH="/opt/android-toolchain-eabi-4.8-1401/bin/"
 TOOLCHAIN="$TOOLCHAIN_PATH/arm-eabi-"
 
 echo "Cleaning latest build"
