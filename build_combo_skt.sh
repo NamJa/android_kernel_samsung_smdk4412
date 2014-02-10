@@ -18,7 +18,7 @@ CUSTOM_PATH=note
 MODE=DUAL
 fi
 
-displayversion=SKT_Devil2-2.4.6
+displayversion=SKT_Devil3.4_0.1.0
 version=$displayversion-$TARGET-$MODE-$(date +%Y%m%d)
 
 if [ -e boot.img ]; then
@@ -63,9 +63,9 @@ chmod 644 *.rc
 chmod 750 init*
 chmod 640 fstab*
 chmod 644 default.prop
+done
 chmod 750 $ROOTFS_PATH/sbin/init*
 chmod a+x $ROOTFS_PATH/sbin/*.sh
-done
 cd $KERNEL_PATH
 
 if [ "$2" = "clean" ]; then
@@ -189,9 +189,9 @@ cp -f $KERNEL_PATH/arch/arm/boot/zImage .
 # Create ramdisk.cpio archive
 cd $ROOTFS_PATH
 find . | fakeroot cpio -o -H newc > $KERNEL_PATH/ramdisk.cpio 2>/dev/null
+ls -lh $KERNEL_PATH/ramdisk.cpio
+lzma -9 $KERNEL_PATH/ramdisk.cpio
 cd $KERNEL_PATH
-ls -lh ramdisk.cpio
-lzma -9 ramdisk.cpio
 
 # Make boot.img
 ./mkbootimg --kernel zImage --ramdisk ramdisk.cpio.lzma --board smdk4x12 --base 0x10000000 --pagesize 2048 --ramdiskaddr 0x11000000 -o $KERNEL_PATH/boot.img
