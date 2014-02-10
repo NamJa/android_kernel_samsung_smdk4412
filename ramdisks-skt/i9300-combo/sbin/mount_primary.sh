@@ -29,7 +29,7 @@ logcat_log() {
 
 check_mount () {
 for i in $($BB seq 1 5) ; do
-if $BB test -d /sys/dev/block/179:13 ; then
+if $BB test -d /sys/dev/block/179:9 ; then
 break
 else
 echo "Waiting for internal mmc..."
