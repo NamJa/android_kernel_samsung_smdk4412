@@ -70,64 +70,17 @@ static int elv_iosched_allow_merge(struct request *rq, struct bio *bio)
 /*
  * can we safely merge with this request?
  */
-int elv_rq_merge_ok(struct request *rq, struct bio *bio)
+bool elv_rq_merge_ok(struct request *rq, struct bio *bio)
 {
-        if (!rq_mergeable(rq))
-                return 0;
+	if (!blk_rq_merge_ok(rq, bio))
+		return 0;
 
-        /*
-         * Don't merge file system requests and discard requests
-         */
-        if ((bio->bi_rw & REQ_DISCARD) != (rq->bio->bi_rw & REQ_DISCARD))
-                return 0;
+	if (!elv_iosched_allow_merge(rq, bio))
+		return 0;
 
-        /*
-         * Don't merge discard requests and secure discard requests
-         */
-        if ((bio->bi_rw & REQ_SECURE) != (rq->bio->bi_rw & REQ_SECURE))
-                return 0;
-
-        /*
-         * different data direction or already started, don't merge
-         */
-        if (bio_data_dir(bio) != rq_data_dir(rq))
-                return 0;
-
-        /*
-         * must be same device and not a special request
-         */
-        if (rq->rq_disk != bio->bi_bdev->bd_disk || rq->special)
-                return 0;
-
-        /*
-         * only merge integrity protected bio into ditto rq
-         */
-        if (bio_integrity(bio) != blk_integrity_rq(rq))
-                return 0;
-
-        if (!elv_iosched_allow_merge(rq, bio))
-                return 0;
-
-        return 1;
+	return 1;
 }
 EXPORT_SYMBOL(elv_rq_merge_ok);
-
-int elv_try_merge(struct request *__rq, struct bio *bio)
-{
-        int ret = ELEVATOR_NO_MERGE;
-
-        /*
-         * we can merge and sequence is ok, check if it's possible
-         */
-        if (elv_rq_merge_ok(__rq, bio)) {
-                if (blk_rq_pos(__rq) + blk_rq_sectors(__rq) == bio->bi_sector)
-                        ret = ELEVATOR_BACK_MERGE;
-                else if (blk_rq_pos(__rq) - bio_sectors(bio) == bio->bi_sector)
-                        ret = ELEVATOR_FRONT_MERGE;
-        }
-
-        return ret;
-}
 
 static struct elevator_type *elevator_find(const char *name)
 {
@@ -462,46 +415,46 @@ EXPORT_SYMBOL(elv_dispatch_add_tail);
 
 int elv_merge(struct request_queue *q, struct request **req, struct bio *bio)
 {
-        struct elevator_queue *e = q->elevator;
-        struct request *__rq;
-        int ret;
+	struct elevator_queue *e = q->elevator;
+	struct request *__rq;
+	int ret;
 
-        /*
-         * Levels of merges:
-         *         nomerges:  No merges at all attempted
-         *         noxmerges: Only simple one-hit cache try
-         *         merges:           All merge tries attempted
-         */
-        if (blk_queue_nomerges(q))
-                return ELEVATOR_NO_MERGE;
+	/*
+	 * Levels of merges:
+	 * 	nomerges:  No merges at all attempted
+	 * 	noxmerges: Only simple one-hit cache try
+	 * 	merges:	   All merge tries attempted
+	 */
+	if (blk_queue_nomerges(q))
+		return ELEVATOR_NO_MERGE;
 
-        /*
-         * First try one-hit cache.
-         */
-        if (q->last_merge) {
-                ret = elv_try_merge(q->last_merge, bio);
-                if (ret != ELEVATOR_NO_MERGE) {
-                        *req = q->last_merge;
-                        return ret;
-                }
-        }
+	/*
+	 * First try one-hit cache.
+	 */
+	if (q->last_merge && elv_rq_merge_ok(q->last_merge, bio)) {
+		ret = blk_try_merge(q->last_merge, bio);
+		if (ret != ELEVATOR_NO_MERGE) {
+			*req = q->last_merge;
+			return ret;
+		}
+	}
 
-        if (blk_queue_noxmerges(q))
-                return ELEVATOR_NO_MERGE;
+	if (blk_queue_noxmerges(q))
+		return ELEVATOR_NO_MERGE;
 
-        /*
-         * See if our hash lookup can find a potential backmerge.
-         */
-        __rq = elv_rqhash_find(q, bio->bi_sector);
-        if (__rq && elv_rq_merge_ok(__rq, bio)) {
-                *req = __rq;
-                return ELEVATOR_BACK_MERGE;
-        }
+	/*
+	 * See if our hash lookup can find a potential backmerge.
+	 */
+	__rq = elv_rqhash_find(q, bio->bi_sector);
+	if (__rq && elv_rq_merge_ok(__rq, bio)) {
+		*req = __rq;
+		return ELEVATOR_BACK_MERGE;
+	}
 
-        if (e->type->ops.elevator_merge_fn)
-                return e->type->ops.elevator_merge_fn(q, req, bio);
+	if (e->type->ops.elevator_merge_fn)
+		return e->type->ops.elevator_merge_fn(q, req, bio);
 
-        return ELEVATOR_NO_MERGE;
+	return ELEVATOR_NO_MERGE;
 }
 
 /*

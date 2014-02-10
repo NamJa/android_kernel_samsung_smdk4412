@@ -22,7 +22,7 @@ MODE=DUAL
 fi
 
 
-displayversion=Devil2-2.4.6
+displayversion=Devil3.4_0.1.0
 
 version=$displayversion-$TARGET-$MODE-$(date +%Y%m%d)
 
@@ -77,9 +77,9 @@ chmod 644 *.rc
 chmod 750 init*
 chmod 640 fstab*
 chmod 644 default.prop
+done
 chmod 750 $ROOTFS_PATH/sbin/init*
 chmod a+x $ROOTFS_PATH/sbin/*.sh
-done
 cd $KERNEL_PATH
 
 if [ "$2" = "clean" ]; then

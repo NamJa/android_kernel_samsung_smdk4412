@@ -482,18 +482,18 @@ static void sdcardfs_put_link(struct dentry *dentry, struct nameidata *nd,
 }
 #endif
 
-static int sdcardfs_permission(struct inode *inode, int mask, unsigned int flags)
+static int sdcardfs_permission(struct inode *inode, int mask)
 {
 	int err;
 
-	if (flags & IPERM_FLAG_RCU)
+	if (mask & MAY_NOT_BLOCK)
 		return -ECHILD;
 	
 	/*
 	 * Permission check on sdcardfs inode.
 	 * Calling process should have AID_SDCARD_RW permission 
 	 */
-	err = generic_permission(inode, mask, 0, inode->i_op->check_acl);
+	err = generic_permission(inode, mask);
 
 	/* XXX 
 	 * Original sdcardfs code calls inode_permission(lower_inode,.. )

@@ -1279,11 +1279,11 @@ bail:
 	return err;
 }
 
-int ocfs2_permission(struct inode *inode, int mask, unsigned int flags)
+int ocfs2_permission(struct inode *inode, int mask)
 {
 	int ret;
 
-	if (flags & IPERM_FLAG_RCU)
+	if (mask & MAY_NOT_BLOCK)
 		return -ECHILD;
 
 	ret = ocfs2_inode_lock(inode, NULL, 0);
@@ -1293,7 +1293,7 @@ int ocfs2_permission(struct inode *inode, int mask, unsigned int flags)
 		goto out;
 	}
 
-	ret = generic_permission(inode, mask, flags, ocfs2_check_acl);
+	ret = generic_permission(inode, mask);
 
 	ocfs2_inode_unlock(inode, 0);
 out:
@@ -2236,9 +2236,9 @@ static ssize_t ocfs2_file_aio_write(struct kiocb *iocb,
 	ocfs2_iocb_clear_sem_locked(iocb);
 
 relock:
-	/* to match setattr's i_mutex -> i_alloc_sem -> rw_lock ordering */
+	/* to match setattr's i_mutex -> rw_lock ordering */
 	if (direct_io) {
-		down_read(&inode->i_alloc_sem);
+		atomic_inc(&inode->i_dio_count);
 		have_alloc_sem = 1;
 		/* communicate with ocfs2_dio_end_io */
 		ocfs2_iocb_set_sem_locked(iocb);
@@ -2290,7 +2290,7 @@ relock:
 	 */
 	if (direct_io && !can_do_direct) {
 		ocfs2_rw_unlock(inode, rw_level);
-		up_read(&inode->i_alloc_sem);
+		inode_dio_done(inode);
 
 		have_alloc_sem = 0;
 		rw_level = -1;
@@ -2361,8 +2361,7 @@ out_dio:
 	/*
 	 * deep in g_f_a_w_n()->ocfs2_direct_IO we pass in a ocfs2_dio_end_io
 	 * function pointer which is called when o_direct io completes so that
-	 * it can unlock our rw lock.  (it's the clustered equivalent of
-	 * i_alloc_sem; protects truncate from racing with pending ios).
+	 * it can unlock our rw lock.
 	 * Unfortunately there are error cases which call end_io and others
 	 * that don't.  so we don't have to unlock the rw_lock if either an
 	 * async dio is going to do it in the future or an end_io after an
@@ -2379,7 +2378,7 @@ out:
 
 out_sems:
 	if (have_alloc_sem) {
-		up_read(&inode->i_alloc_sem);
+		inode_dio_done(inode);
 		ocfs2_iocb_clear_sem_locked(iocb);
 	}
 
@@ -2531,8 +2530,8 @@ static ssize_t ocfs2_file_aio_read(struct kiocb *iocb,
 	 * need locks to protect pending reads from racing with truncate.
 	 */
 	if (filp->f_flags & O_DIRECT) {
-		down_read(&inode->i_alloc_sem);
 		have_alloc_sem = 1;
+		atomic_inc(&inode->i_dio_count);
 		ocfs2_iocb_set_sem_locked(iocb);
 
 		ret = ocfs2_rw_lock(inode, 0);
@@ -2575,7 +2574,7 @@ static ssize_t ocfs2_file_aio_read(struct kiocb *iocb,
 
 bail:
 	if (have_alloc_sem) {
-		up_read(&inode->i_alloc_sem);
+		inode_dio_done(inode);
 		ocfs2_iocb_clear_sem_locked(iocb);
 	}
 	if (rw_level != -1)
@@ -2593,12 +2592,14 @@ const struct inode_operations ocfs2_file_iops = {
 	.listxattr	= ocfs2_listxattr,
 	.removexattr	= generic_removexattr,
 	.fiemap		= ocfs2_fiemap,
+	.check_acl	= ocfs2_check_acl,
 };
 
 const struct inode_operations ocfs2_special_file_iops = {
 	.setattr	= ocfs2_setattr,
 	.getattr	= ocfs2_getattr,
 	.permission	= ocfs2_permission,
+	.check_acl	= ocfs2_check_acl,
 };
 
 /*

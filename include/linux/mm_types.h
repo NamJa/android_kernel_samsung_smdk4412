@@ -132,12 +132,11 @@ struct page {
 #endif
 }
 /*
- * If another subsystem starts using the double word pairing for atomic
- * operations on struct page then it must change the #if to ensure
- * proper alignment of the page struct.
+ * The struct page can be forced to be double word aligned so that atomic ops
+ * on double words work. The SLUB allocator can make use of such a feature.
  */
-#if defined(CONFIG_SLUB) && defined(CONFIG_CMPXCHG_LOCAL)
-	__attribute__((__aligned__(2*sizeof(unsigned long))))
+#ifdef CONFIG_HAVE_ALIGNED_STRUCT_PAGE
+	__aligned(2 * sizeof(unsigned long))
 #endif
 ;
 
@@ -328,9 +327,6 @@ struct mm_struct {
 	unsigned int faultstamp;
 	unsigned int token_priority;
 	unsigned int last_interval;
-
-	/* How many tasks sharing this mm are OOM_DISABLE */
-	atomic_t oom_disable_count;
 
 	unsigned long flags; /* Must use atomic bitops to access the bits */
 

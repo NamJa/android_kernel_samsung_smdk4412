@@ -62,6 +62,7 @@
 #include <net/netdma.h>
 #include <net/inet_common.h>
 #include <net/secure_seq.h>
+#include <net/tcp_memcontrol.h>
 
 #include <asm/uaccess.h>
 
@@ -2017,7 +2018,8 @@ static int tcp_v6_init_sock(struct sock *sk)
 	sk->sk_rcvbuf = sysctl_tcp_rmem[1];
 
 	local_bh_disable();
-	percpu_counter_inc(&tcp_sockets_allocated);
+	sock_update_memcg(sk);
+	sk_sockets_allocated_inc(sk);
 	local_bh_enable();
 
 	return 0;
@@ -2256,6 +2258,9 @@ struct proto tcpv6_prot = {
 	.compat_getsockopt	= compat_tcp_getsockopt,
 #endif
 	.clear_sk		= tcp_v6_clear_sk,
+#ifdef CONFIG_CGROUP_MEM_RES_CTLR_KMEM
+	.proto_cgroup		= tcp_proto_cgroup,
+#endif
 };
 
 static const struct inet6_protocol tcpv6_protocol = {

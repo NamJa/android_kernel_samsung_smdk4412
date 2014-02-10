@@ -279,10 +279,6 @@ When the system goes into the standby or memory sleep state, the phases are:
 	time.)  Unlike the other suspend-related phases, during the prepare
 	phase the device tree is traversed top-down.
 
-	In addition to that, if device drivers need to allocate additional
-	memory to be able to hadle device suspend correctly, that should be
-	done in the prepare phase.
-
 	After the prepare callback method returns, no new children may be
 	registered below the device.  The method may also prepare the device or
 	driver in some way for the upcoming system power transition (for
@@ -506,8 +502,8 @@ routines.  Nevertheless, different callback pointers are used in case there is a
 situation where it actually matters.
 
 
-Device Power Domains
---------------------
+Device Power Management Domains
+-------------------------------
 Sometimes devices share reference clocks or other power resources.  In those
 cases it generally is not possible to put devices into low-power states
 individually.  Instead, a set of devices sharing a power resource can be put
@@ -516,8 +512,8 @@ power resource.  Of course, they also need to be put into the full-power state
 together, by turning the shared power resource on.  A set of devices with this
 property is often referred to as a power domain.
 
-Support for power domains is provided through the pwr_domain field of struct
-device.  This field is a pointer to an object of type struct dev_power_domain,
+Support for power domains is provided through the pm_domain field of struct
+device.  This field is a pointer to an object of type struct dev_pm_domain,
 defined in include/linux/pm.h, providing a set of power management callbacks
 analogous to the subsystem-level and device driver callbacks that are executed
 for the given device during all power transitions, instead of the respective

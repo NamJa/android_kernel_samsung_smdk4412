@@ -2130,7 +2130,7 @@ static void bfq_exit_icq(struct io_cq *icq)
 		 * shared bfq_queue.
 		 */
 		if (bfq_bfqq_coop(bic->bfqq[BLK_RW_SYNC]))
-			put_io_context(icq->ioc, bfqd->queue);
+			put_io_context(icq->ioc);
 		bfq_exit_bfqq(bfqd, bic->bfqq[BLK_RW_SYNC]);
 		bic->bfqq[BLK_RW_SYNC] = NULL;
 	}
@@ -2695,7 +2695,7 @@ bfq_split_bfqq(struct bfq_io_cq *bic, struct bfq_queue *bfqq)
 {
 	bfq_log_bfqq(bfqq->bfqd, bfqq, "splitting queue");
 
-	put_io_context(bic->icq.ioc, bfqq);
+	put_io_context(bic->icq.ioc);
 
 	if (bfqq_process_refs(bfqq) == 1) {
 		bfqq->pid = current->pid;
@@ -2727,11 +2727,12 @@ static int bfq_set_request(struct request_queue *q, struct request *rq,
 	struct bfq_group *bfqg;
 	unsigned long flags;
 	bool split = false;
+	unsigned int changed;
 
 	/* handle changed prio notifications; cgroup change is handled separately */
-	if (unlikely(bic->icq.changed))
-		if (test_and_clear_bit(ICQ_IOPRIO_CHANGED, &bic->icq.changed))
-			bfq_changed_ioprio(bic->icq.ioc, bic);
+	changed = icq_get_changed(&bic->icq);
+	if (unlikely(changed & ICQ_IOPRIO_CHANGED))
+		bfq_changed_ioprio(bic->icq.ioc, bic);
 
 	might_sleep_if(gfp_mask & __GFP_WAIT);
 

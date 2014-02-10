@@ -3,6 +3,8 @@ on fs
     exec /sbin/mount_primary.sh
     exec /sbin/modules.sh
 
+    setprop ro.crypto.fuse_sdcard true
+
 # for LogMeIn
     mount ext4 /dev/block/mmcblk0p13 /system rw wait noatime remount
 
