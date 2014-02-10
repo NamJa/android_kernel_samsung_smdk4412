@@ -18,7 +18,7 @@ CUSTOM_PATH=note
 MODE=DUAL
 fi
 
-displayversion=LGT_Devil3.4_0.1.0
+displayversion=LGT_Devil3.4_0.1.1
 version=$displayversion-$TARGET-$MODE-$(date +%Y%m%d)
 
 if [ -e boot.img ]; then
