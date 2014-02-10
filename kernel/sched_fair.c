@@ -89,6 +89,20 @@ const_debug unsigned int sysctl_sched_migration_cost = 500000UL;
  */
 unsigned int __read_mostly sysctl_sched_shares_window = 10000000UL;
 
+#ifdef CONFIG_CFS_BANDWIDTH
+/*
+ * Amount of runtime to allocate from global (tg) to local (per-cfs_rq) pool
+ * each time a cfs_rq requests quota.
+ *
+ * Note: in the case that the slice exceeds the runtime remaining (either due
+ * to consumption or the quota being specified to be smaller than the slice)
+ * we will always only issue the remaining available time.
+ *
+ * default: 5 msec, units: microseconds
+  */
+unsigned int sysctl_sched_cfs_bandwidth_slice = 5000UL;
+#endif
+
 static const struct sched_class fair_sched_class;
 
 static unsigned long __read_mostly max_load_balance_interval = HZ/10;
@@ -135,14 +149,6 @@ static inline struct cfs_rq *cfs_rq_of(struct sched_entity *se)
 static inline struct cfs_rq *group_cfs_rq(struct sched_entity *grp)
 {
 	return grp->my_q;
-}
-
-/* Given a group's cfs_rq on one cpu, return its corresponding cfs_rq on
- * another cpu ('this_cpu')
- */
-static inline struct cfs_rq *cpu_cfs_rq(struct cfs_rq *cfs_rq, int this_cpu)
-{
-	return cfs_rq->tg->cfs_rq[this_cpu];
 }
 
 static inline void list_add_leaf_cfs_rq(struct cfs_rq *cfs_rq)
@@ -273,11 +279,6 @@ static inline struct cfs_rq *group_cfs_rq(struct sched_entity *grp)
 	return NULL;
 }
 
-static inline struct cfs_rq *cpu_cfs_rq(struct cfs_rq *cfs_rq, int this_cpu)
-{
-	return &cpu_rq(this_cpu)->cfs;
-}
-
 static inline void list_add_leaf_cfs_rq(struct cfs_rq *cfs_rq)
 {
 }
@@ -307,6 +308,8 @@ find_matching_se(struct sched_entity **se, struct sched_entity **pse)
 
 #endif	/* CONFIG_FAIR_GROUP_SCHED */
 
+static void account_cfs_rq_runtime(struct cfs_rq *cfs_rq,
+				   unsigned long delta_exec);
 
 /**************************************************************
  * Scheduling class tree data structure manipulation methods:
@@ -604,6 +607,8 @@ static void update_curr(struct cfs_rq *cfs_rq)
 		cpuacct_charge(curtask, delta_exec);
 		account_group_exec_runtime(curtask, delta_exec);
 	}
+
+	account_cfs_rq_runtime(cfs_rq, delta_exec);
 }
 
 static inline void
@@ -1116,9 +1121,6 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 	 * narrow margin doesn't have to wait for a full slice.
 	 * This also mitigates buddy induced latencies under load.
 	 */
-	if (!sched_feat(WAKEUP_PREEMPT))
-		return;
-
 	if (delta_exec < sysctl_sched_min_granularity)
 		return;
 
@@ -1254,9 +1256,77 @@ entity_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr, int queued)
 		return;
 #endif
 
-	if (cfs_rq->nr_running > 1 || !sched_feat(WAKEUP_PREEMPT))
+	if (cfs_rq->nr_running > 1)
 		check_preempt_tick(cfs_rq, curr);
 }
+
+
+/**************************************************
+ * CFS bandwidth control machinery
+ */
+
+#ifdef CONFIG_CFS_BANDWIDTH
+/*
+ * default period for cfs group bandwidth.
+ * default: 0.1s, units: nanoseconds
+ */
+static inline u64 default_cfs_period(void)
+{
+	return 100000000ULL;
+}
+
+static inline u64 sched_cfs_bandwidth_slice(void)
+{
+	return (u64)sysctl_sched_cfs_bandwidth_slice * NSEC_PER_USEC;
+}
+
+static void assign_cfs_rq_runtime(struct cfs_rq *cfs_rq)
+{
+	struct task_group *tg = cfs_rq->tg;
+	struct cfs_bandwidth *cfs_b = tg_cfs_bandwidth(tg);
+	u64 amount = 0, min_amount;
+
+	/* note: this is a positive sum as runtime_remaining <= 0 */
+	min_amount = sched_cfs_bandwidth_slice() - cfs_rq->runtime_remaining;
+
+	raw_spin_lock(&cfs_b->lock);
+	if (cfs_b->quota == RUNTIME_INF)
+		amount = min_amount;
+	else if (cfs_b->runtime > 0) {
+		amount = min(cfs_b->runtime, min_amount);
+		cfs_b->runtime -= amount;
+	}
+	raw_spin_unlock(&cfs_b->lock);
+
+	cfs_rq->runtime_remaining += amount;
+}
+
+static void __account_cfs_rq_runtime(struct cfs_rq *cfs_rq,
+				     unsigned long delta_exec)
+{
+	if (!cfs_rq->runtime_enabled)
+		return;
+
+	cfs_rq->runtime_remaining -= delta_exec;
+	if (cfs_rq->runtime_remaining > 0)
+		return;
+
+	assign_cfs_rq_runtime(cfs_rq);
+}
+
+static __always_inline void account_cfs_rq_runtime(struct cfs_rq *cfs_rq,
+						   unsigned long delta_exec)
+{
+	if (!cfs_rq->runtime_enabled)
+		return;
+
+	__account_cfs_rq_runtime(cfs_rq, delta_exec);
+}
+
+#else
+static void account_cfs_rq_runtime(struct cfs_rq *cfs_rq,
+				     unsigned long delta_exec) {}
+#endif
 
 /**************************************************
  * CFS operations on tasks:
@@ -1334,16 +1404,19 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 			break;
 		cfs_rq = cfs_rq_of(se);
 		enqueue_entity(cfs_rq, se, flags);
+		cfs_rq->h_nr_running++;
 		flags = ENQUEUE_WAKEUP;
 	}
 
 	for_each_sched_entity(se) {
-		struct cfs_rq *cfs_rq = cfs_rq_of(se);
+		cfs_rq = cfs_rq_of(se);
+		cfs_rq->h_nr_running++;
 
 		update_cfs_load(cfs_rq, 0);
 		update_cfs_shares(cfs_rq);
 	}
 
+	inc_nr_running(rq);
 	hrtick_update(rq);
 }
 
@@ -1363,6 +1436,7 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 	for_each_sched_entity(se) {
 		cfs_rq = cfs_rq_of(se);
 		dequeue_entity(cfs_rq, se, flags);
+		cfs_rq->h_nr_running--;
 
 		/* Don't dequeue parent if it has other entities besides us */
 		if (cfs_rq->load.weight) {
@@ -1372,18 +1446,23 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 			 */
 			if (task_sleep && parent_entity(se))
 				set_next_buddy(parent_entity(se));
+
+			/* avoid re-evaluating load for this entity */
+			se = parent_entity(se);
 			break;
 		}
 		flags |= DEQUEUE_SLEEP;
 	}
 
 	for_each_sched_entity(se) {
-		struct cfs_rq *cfs_rq = cfs_rq_of(se);
+		cfs_rq = cfs_rq_of(se);
+		cfs_rq->h_nr_running--;
 
 		update_cfs_load(cfs_rq, 0);
 		update_cfs_shares(cfs_rq);
 	}
 
+	dec_nr_running(rq);
 	hrtick_update(rq);
 }
 
@@ -1919,12 +1998,8 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 	if (unlikely(p->policy != SCHED_NORMAL))
 		return;
 
-
-	if (!sched_feat(WAKEUP_PREEMPT))
-		return;
-
-	update_curr(cfs_rq);
 	find_matching_se(&se, &pse);
+	update_curr(cfs_rq_of(se));
 	BUG_ON(!pse);
 	if (wakeup_preempt_entity(se, pse) == 1) {
 		/*
@@ -2237,9 +2312,41 @@ static void update_shares(int cpu)
 	struct rq *rq = cpu_rq(cpu);
 
 	rcu_read_lock();
+	/*
+	 * Iterates the task_group tree in a bottom up fashion, see
+	 * list_add_leaf_cfs_rq() for details.
+	 */
 	for_each_leaf_cfs_rq(rq, cfs_rq)
 		update_shares_cpu(cfs_rq->tg, cpu);
 	rcu_read_unlock();
+}
+
+/*
+ * Compute the cpu's hierarchical load factor for each task group.
+ * This needs to be done in a top-down fashion because the load of a child
+ * group is a fraction of its parents load.
+ */
+static int tg_load_down(struct task_group *tg, void *data)
+{
+	unsigned long load;
+	long cpu = (long)data;
+
+	if (!tg->parent) {
+		load = cpu_rq(cpu)->load.weight;
+	} else {
+		load = tg->parent->cfs_rq[cpu]->h_load;
+		load *= tg->se[cpu]->load.weight;
+		load /= tg->parent->cfs_rq[cpu]->load.weight + 1;
+	}
+
+	tg->cfs_rq[cpu]->h_load = load;
+
+	return 0;
+}
+
+static void update_h_load(long cpu)
+{
+	walk_tg_tree(tg_load_down, tg_nop, (void *)cpu);
 }
 
 static unsigned long
@@ -2249,14 +2356,12 @@ load_balance_fair(struct rq *this_rq, int this_cpu, struct rq *busiest,
 		  int *all_pinned)
 {
 	long rem_load_move = max_load_move;
-	int busiest_cpu = cpu_of(busiest);
-	struct task_group *tg;
+	struct cfs_rq *busiest_cfs_rq;
 
 	rcu_read_lock();
-	update_h_load(busiest_cpu);
+	update_h_load(cpu_of(busiest));
 
-	list_for_each_entry_rcu(tg, &task_groups, list) {
-		struct cfs_rq *busiest_cfs_rq = tg->cfs_rq[busiest_cpu];
+	for_each_leaf_cfs_rq(busiest, busiest_cfs_rq) {
 		unsigned long busiest_h_load = busiest_cfs_rq->h_load;
 		unsigned long busiest_weight = busiest_cfs_rq->load.weight;
 		u64 rem_load, moved_load;
@@ -3665,7 +3770,7 @@ static inline struct sched_domain *lowest_flag_domain(int cpu, int flag)
 	struct sched_domain *sd;
 
 	for_each_domain(cpu, sd)
-		if (sd && (sd->flags & flag))
+		if (sd->flags & flag)
 			break;
 
 	return sd;
@@ -4252,8 +4357,13 @@ static void set_curr_task_fair(struct rq *rq)
 {
 	struct sched_entity *se = &rq->curr->se;
 
-	for_each_sched_entity(se)
-		set_next_entity(cfs_rq_of(se), se);
+	for_each_sched_entity(se) {
+		struct cfs_rq *cfs_rq = cfs_rq_of(se);
+
+		set_next_entity(cfs_rq, se);
+		/* ensure bandwidth has been allocated on our new cfs_rq */
+		account_cfs_rq_runtime(cfs_rq, 0);
+	}
 }
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
