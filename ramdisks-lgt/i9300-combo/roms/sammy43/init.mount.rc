@@ -1,0 +1,16 @@
+on fs
+    mount_all /fstab.SHV-E210L
+    exec /sbin/mount_primary.sh
+    exec /sbin/modules.sh
+
+    setprop ro.crypto.fuse_sdcard true
+
+# for LogMeIn
+    mount ext4 /dev/block/mmcblk0p10 /system rw wait noatime remount
+
+    chown graphics /system/bin/RescueStarter
+    chmod 0755 /system/bin/RescueStarter
+    chown graphics /system/bin/RescueServer
+    chmod 0755 /system/bin/RescueServer
+
+    mount ext4 /dev/block/mmcblk0p10 /system ro wait noatime remount
