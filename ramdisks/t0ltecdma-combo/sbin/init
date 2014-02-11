@@ -131,7 +131,8 @@ copy_libs
 	echo previous version: $INSTALLED_VER
 
 	if [ "$1" == "sammy43" ] ; then
-	    if $BB [ ! -f /.secondrom/.selinux_enable ] && $BB grep -q f2fs /proc/mounts ; then #selinux disabled by default
+	    if $BB [ ! -f /.secondrom/.selinux_enable ]; then 
+		##selinux disabled by default## && $BB grep -q f2fs /proc/mounts
    	    	echo 2 > /proc/sys/kernel/rom_feature_set
 		echo "disabled selinux"
 	    else
