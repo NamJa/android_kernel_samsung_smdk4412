@@ -19,7 +19,7 @@ fi
 # Set Default Path
 KERNEL_PATH=$PWD
 
-TOOLCHAIN_PATH="/opt/android-toolchain-eabi-4.8-1401/bin/"
+TOOLCHAIN_PATH="/opt/linaro-arm-eabi-4.9/bin"
 TOOLCHAIN="$TOOLCHAIN_PATH/arm-eabi-"
 
 echo "Cleaning latest build"
