@@ -1,17 +1,9 @@
 /*
-<<<<<<< HEAD
- * Author: andip71, 26.08.2013
- * 
- * Modifications: Yank555.lu 20.08.2013
- *
- * Version 1.6.4
-=======
  * Author: andip71, 14.01.2014
  * 
  * Modifications: Yank555.lu 20.08.2013
  *
  * Version 1.6.5
->>>>>>> e3ef60d... boeffla sound 1.6.5
  *
  * credits: Supercurio for ideas and partially code from his Voodoo
  * 	    	sound implementation,
@@ -30,8 +22,6 @@
  *
  */
 
-<<<<<<< HEAD
-=======
 /*
  * Change log:
  *
@@ -40,7 +30,6 @@
  *
  */
 
->>>>>>> e3ef60d... boeffla sound 1.6.5
 #include <sound/soc.h>
 #include <sound/core.h>
 #include <sound/jack.h>
@@ -54,10 +43,6 @@
 #include "wm8994.h"
 
 #include "boeffla_sound.h"
-<<<<<<< HEAD
-#include "boeffla_voodoo.h"
-=======
->>>>>>> e3ef60d... boeffla sound 1.6.5
 
 // Use delayed work to re-apply eq on headphone changes
 #include <linux/jiffies.h>
@@ -189,16 +174,6 @@ void Boeffla_sound_hook_wm8994_pcm_probe(struct snd_soc_codec *codec_pointer)
 	}
 }
 
-<<<<<<< HEAD
-void boeffla_sound_check_state() {
-    if (boeffla_sound == ON) {
-	boeffla_sound = OFF;
-	reset_boeffla_sound();
-    }
-}
-
-=======
->>>>>>> e3ef60d... boeffla sound 1.6.5
 
 unsigned int Boeffla_sound_hook_wm8994_write(unsigned int reg, unsigned int val)
 {
@@ -1384,14 +1359,6 @@ static void reset_boeffla_sound(void)
 	// print debug info
 	if (debug(DEBUG_NORMAL))
 		printk("Boeffla-sound: reset_boeffla_sound started\n");
-<<<<<<< HEAD
-#ifdef CONFIG_SND_VOODOO
-	if (boeffla_sound == ON) {
-	    voodoo_sound_check_state();
-	}
-#endif
-=======
->>>>>>> e3ef60d... boeffla sound 1.6.5
 
 	// load all default values
 	initialize_global_variables();
